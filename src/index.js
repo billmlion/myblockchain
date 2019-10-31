@@ -3,6 +3,7 @@ const Blockchain = require('./blockchain')
 const blockchain = new Blockchain()
 const Table = require('cli-table');
 
+
 // // instantiate
 // const table = new Table({
 //     head: ['TH 1 label', 'TH 2 label']
@@ -30,8 +31,8 @@ function formatLog(data) {
         colWidths: new Array(head.length).fill(15)
     })
 
-    const res = data.map(v=>{
-        return head.map(h=>v[h])
+    const res = data.map(v => {
+        return head.map(h => JSON.stringify(v[h], null, 1))
     })
 
     table.push(...res)
@@ -46,9 +47,9 @@ vorpal
     });
 
 vorpal
-    .command('mine', ' 挖矿')
+    .command('mine <address>', ' 挖矿 <矿工地址>')
     .action(function (args, callback) {
-        const newBlock = blockchain.mine()
+        const newBlock = blockchain.mine(args.address)
         if (newBlock) {
             // this.log(newBlock)
             formatLog(newBlock)
@@ -61,6 +62,34 @@ vorpal
     .action(function (args, callback) {
         // this.log(blockchain.blockchain);
         formatLog(blockchain.blockchain)
+        callback();
+    });
+
+vorpal
+    .command('trans <from> <to> <amount>', '转账')
+    .action(function (args, callback) {
+        let trans = blockchain.transfer(args.from, args.to, args.amount)
+        if (trans) {
+            formatLog(trans)
+        }
+        callback();
+    });
+
+vorpal
+    .command('detail <index>', '查看区块详情')
+    .action(function (args, callback) {
+        const block = blockchain.blockchain[args.index]
+        this.log(JSON.stringify(block, null, 2))
+        callback();
+    });
+
+vorpal
+    .command('blance <address>', '查看用户账号余额')
+    .action(function (args, callback) {
+        const blance = blockchain.blance(args.address)
+        if (blance) {
+            formatLog({ blance, address: args.address })
+        }
         callback();
     });
 

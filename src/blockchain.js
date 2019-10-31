@@ -19,7 +19,7 @@ const initBlock = {
 class Blockchain {
     constructor() {
         this.blockchain = [initBlock]
-        this.data = ''
+        this.data = []
         this.difficulty = 3
         // const hash = this.computeHash(0, '0', new Date().getTime(), 'Hello woniu-chain!', 1)
         // console.log(hash)
@@ -29,15 +29,20 @@ class Blockchain {
         return this.blockchain[this.blockchain.length - 1]
     }
 
-    //挖矿
-    mine() {
+    //挖矿,其实就是打包交易
+    mine(address) {
         //   1. 生产新的区块 -页新的记账加入了区块链
         //   2.不停的计算哈希 直到计算出符合条件的哈希值，获得记账权
+
+        //挖矿结束 矿工奖励 每次挖矿成功奖励100
+        this.transfer('0', address, 100)
+
         const newBlock = this.generateNewBlock()
         // 区块合法 并且区块链合法，就新增
         if (this.isValidaBlock(newBlock) &&
             this.isValidChain()) {
             this.blockchain.push(newBlock)
+            this.data = []
             return newBlock
         } else {
             console.log('error,invalid block', newBlock)
@@ -115,6 +120,45 @@ class Blockchain {
         }
         return true
     }
+
+
+    transfer(from, to, amount) {
+        if(from!=='0'){
+            // 非挖矿交易
+            const blance = this.blance(from)
+            if(blance<amount){
+                console.log('not enouth blance' , from, blance,amount)
+                return
+            }
+        }
+        //TODO：签名校验
+        const transObj = { from, to, amount }
+        // console.log(transObj)
+        this.data.push(transObj)
+        return transObj
+    }
+
+    // 查看余额
+    blance(address) {
+      let blance = 0
+      this.blockchain.forEach(block=>{
+          if(!Array.isArray(block.data)){
+            //   创世区块
+              return
+          }
+        //   console.log(block)
+          block.data.forEach(trans=>{
+              if(address==trans.from){
+                  blance -= trans.amount
+              }
+              if(address==trans.to){
+                blance +=trans.amount
+            }
+          })
+      })
+      return blance
+    }
+
 
 }
 
