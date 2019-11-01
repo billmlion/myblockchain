@@ -6,6 +6,8 @@
 // 6. p2p网络
 
 const crypto = require('crypto')
+let dgrm = require('dgram')
+
 const initBlock = {
     index: 0,
     prevHash: 0,
@@ -23,6 +25,132 @@ class Blockchain {
         this.difficulty = 3
         // const hash = this.computeHash(0, '0', new Date().getTime(), 'Hello woniu-chain!', 1)
         // console.log(hash)
+        //所有的网络节点信息,包含address，port
+        this.peers = []
+        this.remote = {}
+        this.seed = { port: 8001, address: 'localhost' }
+        this.udp = dgrm.createSocket('udp4')
+        this.init()
+    }
+
+    init() {
+        this.bindP2p()
+        this.bindExit()
+    }
+
+    bindP2p() {
+        this.udp.on('message', (data, remote) => {
+            const { address, port } = remote
+            const action = JSON.parse(data)
+            //   data格式{type:'xxx', data:'xxx'}
+            if (action.type) {
+                this.dispatch(action, { address, port })
+            }
+        })
+
+        this.udp.on('listening', () => {
+            const address = this.udp.address()
+            console.log('[信息]： udp监听完毕 端口是' + address.port)
+        })
+        //区分种子节点和普通节点 普通节点端口随机(0)，种子节点端口固定8001
+        const port = Number(process.argv[2]) || 0
+        this.startNode(port)
+    }
+
+    startNode(port) {
+        this.udp.bind(port)
+        //如果不是种子节点， 需要发送一个消息给种子节点，告诉我来了
+        if (port !== 8001) {
+            this.send({
+                type: 'newpeer',
+            }, this.seed.port, this.seed.address)
+        }
+    }
+
+    send(message, port, address) {
+        this.udp.send(JSON.stringify(message), port, address)
+    }
+
+    dispatch(action, remote) {
+        switch (action.type) {
+            case 'newpeer':
+                //种子节点要做的事情：
+                // 1.告诉大家你的公网ip和port
+                // 2.现在全部节点的列表
+                // 3.告诉所有已知节点 来了新朋友，可让大家与新朋友相互打招呼
+                // 4.告诉你现在区块链的数据
+
+                //1.
+                this.send({
+                    type: 'remoteAddress',
+                    data: remote
+                }, remote.port, remote.address)
+
+                //2.
+                this.send({
+                    type: 'peerList',
+                    data: this.peers
+                }, remote.port, remote.address)
+
+                //3.
+                this.boardcast({
+                    type: 'sayhi',
+                    data: remote
+                })
+
+                //4.
+
+                this.peers.push(remote)
+                console.log('你好，新节点', remote)
+                break
+            case 'remoteAddress':
+                //存储远程消息，当种子节点退出的时候使用
+                this.remote = action.data
+                break
+            case 'peerList':
+                //远程种子节点告诉我，现在的节点列表
+                const newPeers = action.data
+                this.addPeers(newPeers)
+                break
+            case 'sayhi':
+                let remotePeer = action.data
+                this.peers.push(remotePeer)
+                console.log('[信息] 新朋友你好！ - sayhi')
+                this.send({ type: 'hi', data: 'hi!' }, remotePeer.port, remotePeer.address)
+                break
+            case 'hi':
+                console.log(`${remote.address}:${remote.port}:${action.data}`)
+                break
+            default:
+                console.log('不认识该类型action')
+                break
+        }
+    }
+
+    boardcast(action) {
+        //广播全场
+        this.peers.forEach(v => {
+            this.send(action, v.port, v.address)
+        })
+    }
+
+    isEqualPeer(peer1, peer2) {
+        return peer1.address == peer2.address && peer1.port == peer2.port
+    }
+
+    addPeers(peers) {
+        peers.forEach(peer => {
+            //新的节点如果不存在，就添加一个到peers上
+            if (!this.peers.find(v => this.isEqualPeer(peer, v))) {
+                this.peers.push(peer)
+            }
+        })
+    }
+
+    bindExit() {
+        process.on('exit', () => {
+            console.log('[信息]：网络关闭 再见')
+        })
     }
 
     getLastBlock() {
@@ -123,11 +251,11 @@ class Blockchain {
 
 
     transfer(from, to, amount) {
-        if(from!=='0'){
+        if (from !== '0') {
             // 非挖矿交易
             const blance = this.blance(from)
-            if(blance<amount){
-                console.log('not enouth blance' , from, blance,amount)
+            if (blance < amount) {
+                console.log('not enouth blance', from, blance, amount)
                 return
             }
         }
@@ -140,23 +268,23 @@ class Blockchain {
 
     // 查看余额
     blance(address) {
-      let blance = 0
-      this.blockchain.forEach(block=>{
-          if(!Array.isArray(block.data)){
-            //   创世区块
-              return
-          }
-        //   console.log(block)
-          block.data.forEach(trans=>{
-              if(address==trans.from){
-                  blance -= trans.amount
-              }
-              if(address==trans.to){
-                blance +=trans.amount
+        let blance = 0
+        this.blockchain.forEach(block => {
+            if (!Array.isArray(block.data)) {
+                //   创世区块
+                return
             }
-          })
-      })
-      return blance
+            //   console.log(block)
+            block.data.forEach(trans => {
+                if (address == trans.from) {
+                    blance -= trans.amount
+                }
+                if (address == trans.to) {
+                    blance += trans.amount
+                }
+            })
+        })
+        return blance
     }
 
 
