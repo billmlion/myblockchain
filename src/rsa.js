@@ -48,8 +48,8 @@ const keys = generateKeys()
 
 
 // 2.签名
-function sign({ from, to, amount }) {
-    const bufferMsg = Buffer.from('${from} - ${to} - ${amount}')
+function sign({ from, to, amount,timestamp }) {
+    const bufferMsg = Buffer.from('${timestamp}-${amount}-${from}-${to}')
     let signature = Buffer.from(keypair.sign(bufferMsg).toDER()).toString('hex')
     return signature
 }
@@ -58,16 +58,17 @@ function sign({ from, to, amount }) {
 function verify({ from, to, amount, signature }, pub) {
     //校验是没有私钥
     const keypairTemp = ec.keyFromPublic(pub, 'hex')
-    const bufferMsg = Buffer.from('${from} - ${to} - ${amount}')
+    const bufferMsg = Buffer.from('${timestamp}-${amount}-${from}-${to}')
     return keypairTemp.verify(bufferMsg, signature)
 }
 
 // console.log(res)
 
-const trans = { from: 'bill', to: 'mao', amount: 100 }
-// const trans1 = { from: 'bill1', to: 'mao', amount: 80 }
-const signature = sign(trans)
-trans.signature = signature
-console.log(signature)
-const isVerify = verify(trans,keys.pub)
-console.log(isVerify)
+// const trans = { from: 'bill', to: 'mao', amount: 100 }
+// // const trans1 = { from: 'bill1', to: 'mao', amount: 80 }
+// const signature = sign(trans)
+// trans.signature = signature
+// console.log(signature)
+// const isVerify = verify(trans,keys.pub)
+// console.log(isVerify)
+module.exports = {sign, verify, keys}

@@ -2,6 +2,7 @@ const vorpal = require('vorpal')();
 const Blockchain = require('./blockchain')
 const blockchain = new Blockchain()
 const Table = require('cli-table');
+const rsa = require('./rsa')
 
 
 // // instantiate
@@ -20,6 +21,9 @@ const Table = require('cli-table');
 // console.log(table.toString());
 
 function formatLog(data) {
+    if (!data || data.length === 0) {
+        return
+    }
     if (!Array.isArray(data)) {
         data = [data]
     }
@@ -47,9 +51,9 @@ vorpal
     });
 
 vorpal
-    .command('mine <address>', ' 挖矿 <矿工地址>')
+    .command('mine', ' 挖矿 <矿工地址>')
     .action(function (args, callback) {
-        const newBlock = blockchain.mine(args.address)
+        const newBlock = blockchain.mine(rsa.keys.pub)
         if (newBlock) {
             // this.log(newBlock)
             formatLog(newBlock)
@@ -58,7 +62,7 @@ vorpal
     });
 
 vorpal
-    .command('chain', '查看区块链')
+    .command('blockchain', '查看区块链')
     .action(function (args, callback) {
         // this.log(blockchain.blockchain);
         formatLog(blockchain.blockchain)
@@ -66,9 +70,10 @@ vorpal
     });
 
 vorpal
-    .command('trans <from> <to> <amount>', '转账')
+    .command('trans <to> <amount>', '转账')
     .action(function (args, callback) {
-        let trans = blockchain.transfer(args.from, args.to, args.amount)
+        //本地公钥作为转出地址
+        let trans = blockchain.transfer(rsa.keys.pub, args.to, args.amount)
         if (trans) {
             formatLog(trans)
         }
@@ -90,6 +95,38 @@ vorpal
         if (blance) {
             formatLog({ blance, address: args.address })
         }
+        callback();
+    });
+
+
+vorpal
+    .command('pub', '查看本地地址')
+    .action(function (args, callback) {
+        console.log(rsa.keys.pub)
+        callback();
+    });
+
+vorpal
+    .command('peers', '查看网络列表')
+    .action(function (args, callback) {
+        formatLog(blockchain.peers)
+        callback();
+    });
+
+vorpal
+    .command('chat <msg>', '跟別的节点打个招呼')
+    .action(function (args, callback) {
+        blockchain.boardcast({
+            type: 'hi',
+            data: args.msg
+        })
+        callback();
+    });
+
+vorpal
+    .command('pending', '查看还没有打包的交易')
+    .action(function (args, callback) {
+        formatLog(blockchain.data)
         callback();
     });
 
