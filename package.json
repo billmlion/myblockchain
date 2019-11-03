@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run dev",
+    "lint": "eslint --fix --ext .js src",
     "dev": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,5 +15,10 @@
     "cli-table": "^0.3.1",
     "elliptic": "^6.5.1",
     "vorpal": "^1.12.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.6.0",
+    "@typescript-eslint/parser": "^2.6.0",
+    "eslint": "^6.6.0"
   }
 }

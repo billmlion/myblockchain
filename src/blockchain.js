@@ -116,12 +116,14 @@ class Blockchain {
                 break
             case 'blockchain':
                 //同步本地链
-                let allData = JSON.parse(action.data)
-                let newChain = allData.blockchain
-                let newTrans = allData.trans
-                // if(newChain.length>1){
-                this.replaceChain(newChain)
-                this.replaceTrans(newTrans)
+                {
+                    let allData = JSON.parse(action.data)
+                    let newChain = allData.blockchain
+                    let newTrans = allData.trans
+                    // if(newChain.length>1){
+                    this.replaceChain(newChain)
+                    this.replaceTrans(newTrans)
+                }
                 // }
                 break
             case 'remoteAddress':
@@ -130,16 +132,20 @@ class Blockchain {
                 break
             case 'peerList':
                 //远程种子节点告诉我，现在的节点列表
-                const newPeers = action.data
-                this.addPeers(newPeers)
-                this.boardcast({ type: 'hi', data: 'hi!' })
+                {
+                    const newPeers = action.data
+                    this.addPeers(newPeers)
+                    this.boardcast({ type: 'hi', data: 'hi!' })
+                }
                 break
             case 'sayhi':
-                let remotePeer = action.data
-                this.peers.push(remotePeer)
-                console.log('[信息] 新朋友你好！ - sayhi')
-                this.send({ type: 'hi', data: 'hi!' }, remotePeer.port, remotePeer.address)
-                break
+                {
+                    let remotePeer = action.data
+                    this.peers.push(remotePeer)
+                    console.log('[信息] 新朋友你好！ - sayhi')
+                    this.send({ type: 'hi', data: 'hi!' }, remotePeer.port, remotePeer.address)
+                    break
+                }
             case 'hi':
                 console.log(`${remote.address}:${remote.port}:${action.data}`)
                 break
@@ -157,23 +163,25 @@ class Blockchain {
                 break
             case 'mine':
                 //网络上有人挖矿成功
-                const lastBlock = this.getLastBlock()
-                if (lastBlock.hash === action.data.hash) {
-                    //重复的消息
-                    return
-                }
-                if (this.isValidaBlock(action.data, lastBlock)) {
-                    console.log('[信息] 有人挖矿成功，耶耶耶')
-                    this.blockchain.push(action.data)
-                    //清空本地消息
-                    this.data = []
-                    //不用担心，上面已有去重，只为了某些没收到的再接收
-                    this.boardcast({
-                        type: 'mine',
-                        data: action.data
-                    })
-                } else {
-                    console.log('挖矿区块不合法')
+                {
+                    const lastBlock = this.getLastBlock()
+                    if (lastBlock.hash === action.data.hash) {
+                        //重复的消息
+                        return
+                    }
+                    if (this.isValidaBlock(action.data, lastBlock)) {
+                        console.log('[信息] 有人挖矿成功，耶耶耶')
+                        this.blockchain.push(action.data)
+                        //清空本地消息
+                        this.data = []
+                        //不用担心，上面已有去重，只为了某些没收到的再接收
+                        this.boardcast({
+                            type: 'mine',
+                            data: action.data
+                        })
+                    } else {
+                        console.log('挖矿区块不合法')
+                    }
                 }
                 break
             default:
